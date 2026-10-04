@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 API_URL = os.getenv('API_URL', 'http://127.0.0.1:8000').rstrip('/')
 st.set_page_config(page_title=os.getenv('APP_TITLE', 'Multimodal Knowledge Assistant'), layout='wide')
-for key, value in {'token': None, 'room_id': None, 'chat_history': [], 'loaded_room': None}.items():
+for key, value in {'token': None, 'room_id': None, 'chat_history': [], 'loaded_room': None, 'pending_question': None, 'pending_room': None, 'pending_error': None}.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
 def reset_login():
-    for key, value in {'token': None, 'room_id': None, 'chat_history': [], 'loaded_room': None}.items():
+    for key, value in {'token': None, 'room_id': None, 'chat_history': [], 'loaded_room': None, 'pending_question': None, 'pending_room': None, 'pending_error': None}.items():
         st.session_state[key] = value
 
 def api(method, path, timeout=30, **kwargs):
@@ -20,6 +20,8 @@ def api(method, path, timeout=30, **kwargs):
     try:
         response = getattr(requests, method)(API_URL + path, headers=headers, timeout=(5, timeout), **kwargs)
     except requests.RequestException:
+        if method == 'post' and path.startswith('/chat/'):
+            st.session_state.pending_error = 'Cannot reach the backend. Start FastAPI and try again.'
         st.error('Cannot reach the backend. Start FastAPI and try again.')
         return None
     if response.status_code == 401 and st.session_state.token:
@@ -30,7 +32,12 @@ def api(method, path, timeout=30, **kwargs):
             detail = response.json().get('detail', 'Request failed')
         except ValueError:
             detail = 'Request failed. Check the backend logs.'
-        st.error(str(detail))
+        if method == 'post' and path.startswith('/chat/'):
+            st.session_state.pending_error = str(detail)
+        if response.status_code == 429:
+            st.warning(str(detail))
+        else:
+            st.error(str(detail))
         return None
     return response
 
@@ -175,12 +182,23 @@ if st.session_state.chat_history and st.button('Delete chat history'):
         st.rerun()
 for message in st.session_state.chat_history:
     render_message(message)
-query = st.chat_input('Ask about the uploaded files…')
+query = st.chat_input('Ask about the uploaded files.')
+if st.session_state.pending_question and st.session_state.pending_room == room_id:
+    st.warning(st.session_state.pending_error or 'The last question has not been answered yet.')
+    st.caption('Unanswered question: ' + st.session_state.pending_question)
+    if st.button('Retry last question'):
+        query = st.session_state.pending_question
 if query and query.strip():
-    with st.spinner('Reading relevant sources…'):
+    st.session_state.pending_question = query.strip()
+    st.session_state.pending_room = room_id
+    st.session_state.pending_error = None
+    with st.spinner('Reading relevant sources; temporary AI limits may take a moment.'):
         response = api('post', f'/chat/{room_id}', timeout=180, json={'query': query.strip()})
     if response is not None:
+        st.session_state.pending_question = None
+        st.session_state.pending_room = None
+        st.session_state.pending_error = None
         data = response.json()
         st.session_state.chat_history.extend([{'role': 'user', 'content': query.strip()},
             {'role': 'assistant', 'content': data['answer'], 'sources': data['sources']}])
-        st.rerun()
+    st.rerun()

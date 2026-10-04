@@ -66,3 +66,8 @@ Existing production vectors were preserved. The earlier OCR column correction re
 - Automated checks cover room isolation, the five-source limit, recipient/issuer/authorizer intent separation, and an unsupported recipient answer.
 - Live regression requests are spaced 25 seconds apart to respect provider token limits; configure CERTIFICATE_TEST_PAUSE_SECONDS to change test pacing.
 - No reupload or reindex is needed for this query/prompt correction. Previously saved chat answers remain in history; ask the questions again to see corrected answers.
+
+
+## Answer-generation error handling (5 October 2026)
+
+43/43 automated tests passed in 18.6 seconds. Provider responses are simulated for deterministic retry checks: a temporary 429 retries and saves exactly one conversation pair; a persistent 429 stops after three attempts and returns Retry-After without saving a turn; a 63-second provider wait returns immediately without sleeping. Streamlit AppTest verifies the wait message, retained question, one-click retry, and absence of duplicate messages. A separate low-token live Groq health check returned READY; the running backend returned HTTP 200. The reported screenshot alone does not establish the original exception, but prior live tests reproduced Groq token-per-minute exhaustion with the old generic error banner.

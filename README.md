@@ -64,11 +64,11 @@ Configuration is in `services/config.py` and `.env.example`. Logs contain operat
 
 Automated tests use a temporary SQLite database, temporary upload directory, in-memory Qdrant, deterministic embeddings, and mocked answer generation. They never contact Groq or modify your stored documents. Root `test_*.py` scripts are legacy manual demos with external calls/storage side effects; do not collect them as an automated suite.
 
-Validation: 40 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
+Validation: 43 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
 
 To repeat the live model check, run `python -B tests/live_acceptance.py`. It uses temporary storage and synthetic documents, and makes real Groq API requests using the configured key. It is deliberately separate from unittest discovery.
 
-This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 40-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
+This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 43-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
 
 
 ## Applying OCR improvements to existing certificates
@@ -111,3 +111,8 @@ Live visual-only testing found that the current Groq vision model miscounted a s
 ## Certificate recipient questions
 
 Questions such as "the certificate is issued to whom?" and "certificate is for whom" expand retrieval with learner/completion terms. The prompt treats a learner named above "has successfully completed" as the recipient, while keeping issuer, course authorizer, and signature titles separate. This correction does not require reindexing existing correctly extracted uploads. The user's six-question sequence and the earlier course/issuer follow-ups passed with actual OCR, MiniLM, Qdrant, and Groq; previous answers in saved history are not rewritten.
+
+
+## Temporary answer-generation limits
+
+Text generation retries Groq rate-limit responses up to twice when the requested wait is at most 30 seconds. Longer waits and exhausted retries return HTTP 429 with Retry-After and a readable wait message, rather than a generic 502. Connection failures return HTTP 503. These retries are bounded and do not bypass provider quotas. Failed questions stay available in Streamlit with Retry last question; only a successful answer saves the user/assistant pair, so retries do not create incomplete turns. The text client uses 30-second request timeouts and disables nested SDK retries to keep the overall request within the UI timeout. Transcription and vision client settings are unchanged.

@@ -345,6 +345,18 @@ class Week4Tests(unittest.TestCase):
             self.assertFalse(ui.exception)
             self.assertEqual(len(ui.session_state['chat_history']), 2)
             self.assertTrue(ui.session_state['chat_history'][1]['sources'])
+            from services.llm import AnswerRateLimitError
+            with patch('services.rag.generate_answer', side_effect=AnswerRateLimitError(12)):
+                ui.chat_input[0].set_value('What is the fee again?').run()
+            self.assertFalse(ui.exception)
+            self.assertEqual(ui.session_state['pending_question'], 'What is the fee again?')
+            self.assertTrue(any('Wait 12 seconds' in warning.value for warning in ui.warning))
+            self.assertEqual(len(ui.session_state['chat_history']), 2)
+            with patch('services.rag.generate_answer', return_value='The fee is 500.'):
+                next(button for button in ui.button if button.label == 'Retry last question').click().run()
+            self.assertFalse(ui.exception)
+            self.assertIsNone(ui.session_state['pending_question'])
+            self.assertEqual(len(ui.session_state['chat_history']), 4)
             next(button for button in ui.button if button.key == f'delete_file_{file_id}').click().run()
             self.assertFalse(ui.exception)
             self.assertIsNone(self.record(file_id))
@@ -507,6 +519,7 @@ class Week4Tests(unittest.TestCase):
         from services.llm import generate_answer
         from unittest.mock import MagicMock
         client = MagicMock()
+        client.with_options.return_value = client
         client.chat.completions.create.return_value.choices[0].message.content = 'Answer'
         history = [{'role': 'user' if i % 2 == 0 else 'assistant', 'content': str(i)} for i in range(8)]
         with patch('services.llm.get_client', return_value=client):
@@ -514,6 +527,64 @@ class Week4Tests(unittest.TestCase):
         messages = client.chat.completions.create.call_args.kwargs['messages']
         self.assertEqual(messages[1:-1], history[-6:])
         self.assertEqual(messages[-1]['content'], 'Current evidence')
+
+    def test_rate_limit_retries_then_saves_one_complete_turn(self):
+        from unittest.mock import MagicMock
+        from groq import RateLimitError
+        import httpx
+        from services.llm import generate_answer
+        self.upload()
+        provider = MagicMock()
+        provider.with_options.return_value = provider
+        error = RateLimitError('Limited', response=httpx.Response(429, headers={'retry-after': '2'},
+            request=httpx.Request('POST', 'https://api.example.com')), body={})
+        success = MagicMock()
+        success.choices[0].message.content = 'The fee is 500.'
+        provider.chat.completions.create.side_effect = [error, success]
+        with patch('services.llm.get_client', return_value=provider), patch('services.llm.time.sleep') as sleep:
+            response = self.client.post('/chat/1', headers=self.alice, json={'query': 'fee?'})
+        self.assertEqual(response.status_code, 200, response.text)
+        sleep.assert_called_once_with(2)
+        self.assertEqual(provider.chat.completions.create.call_count, 2)
+        self.assertEqual(len(self.client.get('/chat/1/history', headers=self.alice).json()), 2)
+
+    def test_persistent_rate_limit_returns_wait_without_saving_turn(self):
+        from unittest.mock import MagicMock
+        from groq import RateLimitError
+        import httpx
+        self.upload()
+        provider = MagicMock()
+        provider.with_options.return_value = provider
+        error = RateLimitError('Limited', response=httpx.Response(429, headers={'retry-after': '3'},
+            request=httpx.Request('POST', 'https://api.example.com')), body={})
+        provider.chat.completions.create.side_effect = error
+        with patch('services.llm.get_client', return_value=provider), patch('services.llm.time.sleep') as sleep:
+            response = self.client.post('/chat/1', headers=self.alice, json={'query': 'fee?'})
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.headers['retry-after'], '3')
+        self.assertIn('Wait 3 seconds', response.json()['detail'])
+        self.assertEqual(provider.chat.completions.create.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(self.client.get('/chat/1/history', headers=self.alice).json(), [])
+
+    def test_long_rate_limit_does_not_block_and_parses_provider_message(self):
+        from unittest.mock import MagicMock
+        from groq import RateLimitError
+        import httpx
+        from services.llm import generate_answer, AnswerRateLimitError, rate_limit_wait
+        error = RateLimitError('Limited', response=httpx.Response(429,
+            request=httpx.Request('POST', 'https://api.example.com')),
+            body={'error': {'message': 'Please try again in 1m2.5s. Account private.'}})
+        self.assertEqual(rate_limit_wait(error), 63)
+        provider = MagicMock()
+        provider.with_options.return_value = provider
+        provider.chat.completions.create.side_effect = error
+        with patch('services.llm.get_client', return_value=provider), patch('services.llm.time.sleep') as sleep:
+            with self.assertRaises(AnswerRateLimitError) as caught:
+                generate_answer('evidence')
+        self.assertEqual(caught.exception.retry_after, 63)
+        sleep.assert_not_called()
+        self.assertEqual(provider.chat.completions.create.call_count, 1)
 
     def test_sources_use_first_150_characters(self):
         content = 'The workshop coordinator is Mira Sen. ' * 12

@@ -7,6 +7,8 @@ from schemas.chat import ChatRequest, ChatResponse
 from services.auth import get_current_user
 from services.documents import require_room
 from services.rag import ask
+from services.llm import AnswerRateLimitError
+from groq import APIConnectionError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/chat', tags=['Chat'])
@@ -35,6 +37,13 @@ def chat(room_id: int, chat_data: ChatRequest, db: Session = Depends(get_db), cu
     history = [{'role': message.role, 'content': message.content} for message in reversed(messages)]
     try:
         result = ask(query=chat_data.query, room_id=room_id, history=history)
+    except AnswerRateLimitError as exc:
+        logger.warning('AI rate limit persists for room %s; retry after %s seconds', room_id, exc.retry_after)
+        raise HTTPException(429, f'The AI service reached its usage limit. Wait {exc.retry_after} seconds, then retry your question.',
+                            headers={'Retry-After': str(exc.retry_after)}) from exc
+    except APIConnectionError as exc:
+        logger.warning('AI service connection failed for room %s', room_id)
+        raise HTTPException(503, 'Cannot reach the AI service right now. Please retry shortly.') from exc
     except Exception as exc:
         logger.exception('Answer generation failed for room %s', room_id)
         raise HTTPException(502, 'Answer generation failed; retry your question') from exc
