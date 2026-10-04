@@ -234,6 +234,16 @@ Content:
                              "do NOT answer only I don't know. State that the certificate issuer cannot "
                              "be determined from the document. Include the COURSE authorizer and platform "
                              "when supported in context; neither is automatically the certificate issuer.")
+    elif (re.search(r'\b(?:fee|fees|price|cost|tuition|rent|payment|amount)\b', query, re.I)
+          and re.search(r'\b(?:expensive|cheap|affordable|costly|reasonable|overpriced|high|low)\b', query, re.I)):
+        question_guidance = (
+            "COST JUDGMENT: If context states the relevant fee or price, give its exact amount "
+            "and currency first. If context lacks an applicable budget or comparison, explain "
+            "that whether it is expensive/affordable depends on the user's budget and comparable "
+            "fees; the document alone does not establish that. Do not return only I don't know "
+            "when the relevant amount is supported. Do not invent market prices, budgets, or an "
+            "expensive/cheap verdict. If no relevant amount or comparison is supported, answer "
+            "exactly I don't know. Prefer two concise sentences.")
     elif re.search(r'\bauthorized\b', query, re.I):
         question_guidance = ("State what the document actually says was authorized: distinguish course "
                              "authorization from certificate issuance.")
@@ -254,7 +264,7 @@ name for the learner. If no recipient is identified, do not guess.
 logos, university names, authorizers, platforms, signatures, affiliations or titles.
 When the issuer is unstated, explain that it cannot be determined, then give only
 explicitly supported course authorizer/platform facts. Signer claims require
-explicit evidence. Other unsupported questions: answer exactly "I don't know."
+explicit evidence. Except for the specific question guidance below, unsupported questions: answer exactly "I don't know."
 Partial evidence: give only supported facts. Conflicting documents: state the
 conflict. Generated visual descriptions labelled unverified must be qualified as
 automated image analysis that may be inaccurate; counts/identities are unverified.

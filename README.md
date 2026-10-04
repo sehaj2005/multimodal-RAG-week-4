@@ -64,11 +64,11 @@ Configuration is in `services/config.py` and `.env.example`. Logs contain operat
 
 Automated tests use a temporary SQLite database, temporary upload directory, in-memory Qdrant, deterministic embeddings, and mocked answer generation. They never contact Groq or modify your stored documents. Root `test_*.py` scripts are legacy manual demos with external calls/storage side effects; do not collect them as an automated suite.
 
-Validation: 45 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
+Validation: 46 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
 
 To repeat the live model check, run `python -B tests/live_acceptance.py`. It uses temporary storage and synthetic documents, and makes real Groq API requests using the configured key. It is deliberately separate from unittest discovery.
 
-This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 45-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
+This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 46-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
 
 
 ## Applying OCR improvements to existing certificates
@@ -118,3 +118,8 @@ Questions such as "the certificate is issued to whom?" and "certificate is for w
 Text generation uses a compact grounded prompt and retains the latest six history messages. LLM_MODEL remains the primary; LLM_FALLBACK_MODEL defaults to the account-enabled openai/gpt-oss-20b. A primary-model 429 switches immediately to the backup and puts the primary into cooldown for the provider's requested wait. Later requests skip models still in cooldown, avoiding repeated attempts against an exhausted daily allowance. Set LLM_FALLBACK_MODEL to an empty value to disable fallback. The backup uses bounded retries for waits up to 30 seconds. If both models are unavailable, HTTP 429 reports the shortest pending wait; provider limits still apply. No answers are fabricated to avoid a quota error.
 
 Failed questions stay available in Streamlit with Retry last question. Only a successful answer saves the user/assistant pair, so retries do not create incomplete turns. The text client uses 25-second request timeouts with nested SDK retries disabled, bounding four possible calls and two short waits below the UI's 180-second timeout. Transcription and vision settings are unchanged.
+
+
+## Grounded cost judgments
+
+For price/fee questions such as "is winter term fee expensive", the assistant reports the relevant documented amount and currency. If no applicable budget or comparison is supplied, it explains that expense/affordability depends on budget and comparable fees and cannot be determined from the receipt alone. It does not invent market rates or an expensive/cheap verdict. Questions with no relevant amount or comparison still return the unsupported fallback. Repeat the isolated real-model check with `python -B tests/cost_judgment_acceptance.py`; it sends synthetic receipt text only.

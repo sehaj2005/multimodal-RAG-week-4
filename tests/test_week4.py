@@ -621,6 +621,18 @@ class Week4Tests(unittest.TestCase):
                        'explicitly identified issuer', "I don't know.", 'unverified']:
             self.assertIn(phrase, prompt)
 
+    def test_cost_judgment_guidance_requires_a_price_question(self):
+        for query in ['is winter term fee expensive', 'Is the rent affordable?', 'Is this price reasonable?']:
+            prompt = rag.build_prompt(query, [])
+            self.assertIn('COST JUDGMENT', prompt)
+            self.assertIn("user's budget", prompt)
+            self.assertIn('Do not invent market prices', prompt)
+            self.assertIn('If no relevant amount or comparison is supported', prompt)
+            self.assertNotIn('6,350', prompt)
+        for query in ['What is winter term fee?', 'Is the university prestigious?',
+                      'What is the mode of payment?', 'Who issued the certificate?']:
+            self.assertNotIn('COST JUDGMENT', rag.build_prompt(query, []))
+
     def test_sources_use_first_150_characters(self):
         content = 'The workshop coordinator is Mira Sen. ' * 12
         self.upload(content=content.encode())
