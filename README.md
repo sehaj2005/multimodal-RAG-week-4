@@ -64,11 +64,11 @@ Configuration is in `services/config.py` and `.env.example`. Logs contain operat
 
 Automated tests use a temporary SQLite database, temporary upload directory, in-memory Qdrant, deterministic embeddings, and mocked answer generation. They never contact Groq or modify your stored documents. Root `test_*.py` scripts are legacy manual demos with external calls/storage side effects; do not collect them as an automated suite.
 
-Validation: 46 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
+Validation: 47 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
 
 To repeat the live model check, run `python -B tests/live_acceptance.py`. It uses temporary storage and synthetic documents, and makes real Groq API requests using the configured key. It is deliberately separate from unittest discovery.
 
-This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 46-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
+This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 47-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
 
 
 ## Applying OCR improvements to existing certificates
@@ -123,3 +123,8 @@ Failed questions stay available in Streamlit with Retry last question. Only a su
 ## Grounded cost judgments
 
 For price/fee questions such as "is winter term fee expensive", the assistant reports the relevant documented amount and currency. If no applicable budget or comparison is supplied, it explains that expense/affordability depends on budget and comparable fees and cannot be determined from the receipt alone. It does not invent market rates or an expensive/cheap verdict. Questions with no relevant amount or comparison still return the unsupported fallback. Repeat the isolated real-model check with `python -B tests/cost_judgment_acceptance.py`; it sends synthetic receipt text only.
+
+
+## University and institute names
+
+Organization-name questions distinguish the requested type. An institute's name containing University does not make it the university itself. The answer uses the actual university identified in document text, including terms/footer, and does not infer an unnamed parent from an institute name or copy a mistaken answer from history. Test both names with `python -B tests/organization_names_acceptance.py path/to/receipt.pdf` (opt-in real Groq call; isolated vectors).

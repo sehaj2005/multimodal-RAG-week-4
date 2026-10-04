@@ -85,3 +85,8 @@ All ten live certificate regression questions passed against the actual certific
 ## Grounded cost judgment (5 October 2026)
 
 46/46 automated tests passed in 29.0 seconds. The opt-in real MiniLM/Qdrant/Groq check passed four cases: a synthetic INR 6350 receipt, a separate INR 2450 receipt, a receipt without an amount, and an empty room. Supported answers quote the current receipt's amount and explain the missing budget/comparison; a deliberately incorrect amount in prior assistant history was not reused. Missing-amount/empty-room cases returned I don't know with empty sources. The first supported live request used the primary model; another hit its limit and answered successfully through the backup. Tests used in-memory vectors and did not alter saved uploads or chats.
+
+
+## University versus institute regression (5 October 2026)
+
+47/47 automated tests passed in 26.1 seconds. Isolated retrieval of the earlier receipt returned both the Chandigarh University terms and University Institute of Computing header for both questions, confirming the evidence was available. After the organization-type guidance was applied, real MiniLM/Qdrant/Groq testing against the local sample.pdf receipt returned Chandigarh University for what is the name of university and University Institute of Computing (UIC) for name of institute. The test supplied a prior incorrect UIC university answer to verify that history did not replace evidence. A separate institute-only document returned I don't know with empty sources for the missing university. The primary and backup both participated in successful live checks. No saved rooms or document vectors were altered by testing.

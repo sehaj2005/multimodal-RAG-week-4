@@ -633,6 +633,16 @@ class Week4Tests(unittest.TestCase):
                       'What is the mode of payment?', 'Who issued the certificate?']:
             self.assertNotIn('COST JUDGMENT', rag.build_prompt(query, []))
 
+    def test_organization_name_questions_distinguish_university_from_institute(self):
+        for query, kind in [('what is the name of university', 'university'),
+                            ('name of institute', 'institute'), ('university name?', 'university')]:
+            prompt = rag.build_prompt(query, [])
+            self.assertIn(f'requested organization type is {kind}', prompt)
+            self.assertIn('do not substitute the institute', prompt)
+            self.assertIn('Do not infer an unnamed parent university', prompt)
+            self.assertNotIn('Chandigarh University', prompt)
+        self.assertNotIn('ORGANIZATION NAME:', rag.build_prompt('is winter term fee expensive', []))
+
     def test_sources_use_first_150_characters(self):
         content = 'The workshop coordinator is Mira Sen. ' * 12
         self.upload(content=content.encode())
