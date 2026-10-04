@@ -90,3 +90,10 @@ All ten live certificate regression questions passed against the actual certific
 ## University versus institute regression (5 October 2026)
 
 47/47 automated tests passed in 26.1 seconds. Isolated retrieval of the earlier receipt returned both the Chandigarh University terms and University Institute of Computing header for both questions, confirming the evidence was available. After the organization-type guidance was applied, real MiniLM/Qdrant/Groq testing against the local sample.pdf receipt returned Chandigarh University for what is the name of university and University Institute of Computing (UIC) for name of institute. The test supplied a prior incorrect UIC university answer to verify that history did not replace evidence. A separate institute-only document returned I don't know with empty sources for the missing university. The primary and backup both participated in successful live checks. No saved rooms or document vectors were altered by testing.
+
+
+## Football poster audit (5 October 2026)
+
+The initial OCR omitted the date banner, split the university heading, and read VIC instead of UIC at the venue. It already contained both faculty names, although the earlier answer returned only one. Color-band OCR now preserves complete header/date/venue text while retaining spatially separate organizer and faculty sections. Date annotations improve short-query retrieval.
+
+48/48 automated tests passed in 32.7 seconds, including date retrieval into the top five sources. All six real OCR/MiniLM/Qdrant/Groq questions passed: organizers Shaurya, Harsh, Pushveer, Arudh; UIC Main Ground, North Campus; 6, 7, 8 April without an invented year; faculty Lt. Jagvinder Singh and Ms Palwinder Kaur Mangat; host UIC Sports Club; university Chandigarh University. The primary and backup models both participated. An additional real certificate OCR regression preserved Sehtej's completion passage, Shilpa's Assistant Professor designation, and Raghuveer's separate Pro-VC title. Tests used isolated vectors and did not reindex production data. Existing poster uploads need Reindex to replace their stale OCR.

@@ -643,6 +643,19 @@ class Week4Tests(unittest.TestCase):
             self.assertNotIn('Chandigarh University', prompt)
         self.assertNotIn('ORGANIZATION NAME:', rag.build_prompt('is winter term fee expensive', []))
 
+    def test_short_date_question_retrieves_unlabelled_month_day_banner(self):
+        from services.ingestion.image import chunk_image_text
+        chunks = chunk_image_text('\n\n'.join([
+            'OCR region 1: ORGANIZING TEAM: Alice, Bob', 'OCR region 2: VENUE: Main Ground',
+            'OCR region 3: hosted by Sports Club', 'OCR region 4: University header',
+            'OCR region 5: Faculty incharge Mira Sen', 'OCR region 6: SCAN TO REGISTER',
+            'OCR region 7: Tournament rules', 'OCR region 8: 6, 7, 8 APRIL']))
+        qdrant.embed_and_store(chunks, 1, 504, 'poster.png', 'image')
+        context = rag.retrieve_context('any dates?', 1)
+        self.assertTrue(any('6, 7, 8 APRIL' in item['text'] for item in context))
+        self.assertLessEqual(len(context), 5)
+        self.assertNotIn('2026', rag.build_prompt('any dates?', context))
+
     def test_sources_use_first_150_characters(self):
         content = 'The workshop coordinator is Mira Sen. ' * 12
         self.upload(content=content.encode())

@@ -64,11 +64,11 @@ Configuration is in `services/config.py` and `.env.example`. Logs contain operat
 
 Automated tests use a temporary SQLite database, temporary upload directory, in-memory Qdrant, deterministic embeddings, and mocked answer generation. They never contact Groq or modify your stored documents. Root `test_*.py` scripts are legacy manual demos with external calls/storage side effects; do not collect them as an automated suite.
 
-Validation: 47 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
+Validation: 48 automated tests passed, including real PDF/OCR and Streamlit AppTest, and a separate synthetic live check passed with real MiniLM embeddings and Groq. The complete Alembic migration command passed on a temporary database. See `TEST_MATRIX.md` for the detailed results and limits.
 
 To repeat the live model check, run `python -B tests/live_acceptance.py`. It uses temporary storage and synthetic documents, and makes real Groq API requests using the configured key. It is deliberately separate from unittest discovery.
 
-This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 47-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
+This working checkout uses `venv` with Python 3.11; its audio/video dependencies are installed and the 48-test suite passed there. The setup above creates `.venv` for a fresh checkout. Use `venv\Scripts\python` instead of `.venv\Scripts\python` when running commands in this existing checkout. Validation tools and dependencies in ignored directories are optional local artifacts, not application requirements.
 
 
 ## Applying OCR improvements to existing certificates
@@ -128,3 +128,10 @@ For price/fee questions such as "is winter term fee expensive", the assistant re
 ## University and institute names
 
 Organization-name questions distinguish the requested type. An institute's name containing University does not make it the university itself. The answer uses the actual university identified in document text, including terms/footer, and does not infer an unnamed parent from an institute name or copy a mistaken answer from history. Test both names with `python -B tests/organization_names_acceptance.py path/to/receipt.pdf` (opt-in real Groq call; isolated vectors).
+
+
+## Colorful event posters
+
+Colorful images receive supplemental color OCR in overlapping horizontal bands. Readings retain coordinates, discard background fragments, preserve recognized mixed-case name/body lines, and reconcile overlapping uppercase display text rather than concatenating incompatible layouts. Month/day text receives a dates/schedule label for short questions such as "any dates?". Faculty questions request all supported names in the faculty section; date answers do not invent a missing year. OCR remains fallible and should be checked against the image.
+
+Existing poster uploads must be Reindexed once to replace old extraction; previously saved answers are unchanged. Repeat the exact football-poster sequence with `python -B tests/poster_acceptance.py path/to/poster.jpeg`. This opt-in check sends the supplied poster's OCR text to Groq, uses isolated vectors, and does not update production uploads.

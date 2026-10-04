@@ -1,9 +1,10 @@
 """OCR text with spatial regions preserved to keep columns and signatories separate."""
 import os
 import shutil
+import re
 from collections import defaultdict
 from statistics import median
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageStat
 import pytesseract
 from services.ingestion.chunker import chunk_text
 
@@ -61,6 +62,10 @@ def regions_from_data(data, image_width):
                              'top': min(word['top'] for word in group),
                              'bottom': max(word['top'] + word['height'] for word in group),
                              'height': max(word['height'] for word in group)})
+    return link_segments(segments)
+
+
+def link_segments(segments):
     regions = []
     for segment in sorted(segments, key=lambda line: (line['top'], line['left'])):
         candidates = []
@@ -79,19 +84,79 @@ def regions_from_data(data, image_width):
     return regions
 
 
+def supplement_color_display_text(regions, source):
+    """Read colorful poster bands without concatenating conflicting layouts.
+
+    Preserve recognized mixed-case body/name lines. Color crops may replace
+    overlapping uppercase display lines; new lines retain image coordinates.
+    """
+    color = ImageOps.exif_transpose(source).convert('RGB')
+    chroma = ImageStat.Stat(ImageChops.difference(color, ImageOps.grayscale(color).convert('RGB'))).mean
+    if sum(chroma) / len(chroma) < 10:
+        return regions
+    scale = min(3.0, 3600 / max(color.size))
+    color = color.resize((round(color.width * scale), round(color.height * scale)), Image.Resampling.LANCZOS)
+    base_scale = min(2.0, 3600 / max(source.size))
+    ratio = scale / base_scale
+    segments = []
+    for region in regions:
+        for line in region:
+            if sum(c.isalnum() for c in line['text']) < 3:
+                continue
+            item = dict(line)
+            for key in ('left', 'right', 'top', 'bottom', 'height'):
+                item[key] *= ratio
+            segments.append(item)
+    for band in range(10):
+        top = max(0, round((band / 10 - .02) * color.height))
+        bottom = min(color.height, round(((band + 1) / 10 + .02) * color.height))
+        crop = color.crop((0, top, color.width, bottom))
+        data = pytesseract.image_to_data(crop, config='--psm 11', output_type=pytesseract.Output.DICT)
+        # Drop low-confidence background fragments in supplemental readings.
+        data['conf'] = [value if float(value) >= 65 else -1 for value in data['conf']]
+        for region in regions_from_data(data, color.width):
+            for line in region:
+                text = line['text']
+                words = [word for word in text.split() if sum(c.isalpha() for c in word) >= 3]
+                letters = ''.join(c for c in text if c.isalpha())
+                if not (len(words) >= 2 or (letters.isupper() and len(letters) >= 5)):
+                    continue
+                line = dict(line)
+                line['top'] += top
+                line['bottom'] += top
+                overlaps = []
+                for existing in segments:
+                    width = max(0, min(existing['right'], line['right']) - max(existing['left'], line['left']))
+                    height = max(0, min(existing['bottom'], line['bottom']) - max(existing['top'], line['top']))
+                    area = min((existing['right'] - existing['left']) * (existing['bottom'] - existing['top']),
+                               (line['right'] - line['left']) * (line['bottom'] - line['top']))
+                    if area and width * height / area >= .6:
+                        overlaps.append(existing)
+                if not overlaps:
+                    segments.append(line)
+                elif letters.isupper():
+                    old_letters = ''.join(c for item in overlaps for c in item['text'] if c.isalpha())
+                    uppercase = sum(c.isupper() for c in old_letters) / max(1, len(old_letters))
+                    if (uppercase >= .8 and len(letters) >= len(old_letters) * .8
+                            and sum(c.isdigit() for c in text) >= sum(c.isdigit() for item in overlaps for c in item['text'])):
+                        segments = [item for item in segments if item not in overlaps]
+                        segments.append(line)
+    return link_segments(segments)
+
+
 def extract_image_text(file_path):
     try:
         with Image.open(file_path) as source:
             image = preprocess_image(source)
-        data = pytesseract.image_to_data(image, config='--psm 3', output_type=pytesseract.Output.DICT)
-        regions = regions_from_data(data, image.width)
-        # Select one reading; concatenating different OCR layouts mixes relationships.
-        if sum(len(region) for region in regions) < 3:
-            alternatives = [regions]
-            for mode in (6, 11):
-                alternate = pytesseract.image_to_data(image, config=f'--psm {mode}', output_type=pytesseract.Output.DICT)
-                alternatives.append(regions_from_data(alternate, image.width))
-            regions = max(alternatives, key=lambda candidate: sum(len(line['text']) for region in candidate for line in region))
+            data = pytesseract.image_to_data(image, config='--psm 3', output_type=pytesseract.Output.DICT)
+            regions = regions_from_data(data, image.width)
+            if sum(len(region) for region in regions) < 3:
+                alternatives = [regions]
+                for mode in (6, 11):
+                    alternate = pytesseract.image_to_data(image, config=f'--psm {mode}', output_type=pytesseract.Output.DICT)
+                    alternatives.append(regions_from_data(alternate, image.width))
+                regions = max(alternatives, key=lambda candidate: sum(len(line['text']) for region in candidate for line in region))
+            regions = supplement_color_display_text(regions, source)
         return '\n\n'.join(f'OCR region {index}:\n' + '\n'.join(line['text'] for line in region)
                             for index, region in enumerate(regions, 1))
     except Exception as exc:
@@ -100,5 +165,10 @@ def extract_image_text(file_path):
 
 def chunk_image_text(text, chunk_size=150, overlap=30):
     # Do not overlap chunks across spatial regions: that would rejoin columns.
-    return [chunk for region in text.split('\n\n')
-            for chunk in chunk_text(region, chunk_size=chunk_size, overlap=overlap)]
+    chunks = []
+    months = r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+    for region in text.split('\n\n'):
+        if re.search(rf'\b{months}\b', region, re.I) and re.search(r'\d', region):
+            region = 'Dates / schedule (OCR text):\n' + region
+        chunks.extend(chunk_text(region, chunk_size=chunk_size, overlap=overlap))
+    return chunks
