@@ -71,3 +71,12 @@ Existing production vectors were preserved. The earlier OCR column correction re
 ## Answer-generation error handling (5 October 2026)
 
 43/43 automated tests passed in 18.6 seconds. Provider responses are simulated for deterministic retry checks: a temporary 429 retries and saves exactly one conversation pair; a persistent 429 stops after three attempts and returns Retry-After without saving a turn; a 63-second provider wait returns immediately without sleeping. Streamlit AppTest verifies the wait message, retained question, one-click retry, and absence of duplicate messages. A separate low-token live Groq health check returned READY; the running backend returned HTTP 200. The reported screenshot alone does not establish the original exception, but prior live tests reproduced Groq token-per-minute exhaustion with the old generic error banner.
+
+
+## Recurring daily-quota fix (5 October 2026)
+
+A real primary-model request returned HTTP 429 for tokens per day: limit 200000, used 198888, requested 1433. This establishes daily token exhaustion, rather than a transient per-minute limit, as the recurring failure. The account's model list includes openai/gpt-oss-20b, which now provides the default backup.
+
+The synthetic single-source prompt shrank from 6410 to 1892 characters (about 70 percent). The primary switches to the backup on 429 and remains on provider-directed cooldown; later requests skip it during that window. Backup retries and request timeouts remain bounded. Tests cover successful fallback, skipped primary calls, no retry sleep when a backup succeeds, and preservation of recipient/issuer rules. The 45-test suite passed in 21.2 seconds; the final two targeted checks passed after restricting issuer guidance to certificate wording.
+
+All ten live certificate regression questions passed against the actual certificate with the backup model after strengthening its issuer-specific clarification. A separate live fallback-path check, with the primary placed in a test cooldown, answered a synthetic Winter Term Fee question correctly as Rs 6350. The live tests used isolated storage. The running backend returned HTTP 200. Both models remain subject to provider quotas; if both are exhausted, the app reports the wait instead of fabricating an answer.

@@ -39,6 +39,12 @@ class Week4Tests(unittest.TestCase):
             path.unlink()
         self.embedding = patch('services.qdrant.create_embedding', return_value=[1.0] + [0.0] * 383)
         self.embedding.start()
+        fallback = patch('services.llm.LLM_FALLBACK_MODEL', '')
+        fallback.start()
+        self.addCleanup(fallback.stop)
+        cooldowns = patch.dict('services.llm._model_cooldowns', {}, clear=True)
+        cooldowns.start()
+        self.addCleanup(cooldowns.stop)
         self.addCleanup(self.embedding.stop)
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
@@ -585,6 +591,35 @@ class Week4Tests(unittest.TestCase):
         self.assertEqual(caught.exception.retry_after, 63)
         sleep.assert_not_called()
         self.assertEqual(provider.chat.completions.create.call_count, 1)
+
+    def test_backup_model_answers_and_primary_cooldown_avoids_repeated_calls(self):
+        from unittest.mock import MagicMock
+        from groq import RateLimitError
+        import httpx
+        from services.llm import generate_answer
+        provider = MagicMock()
+        provider.with_options.return_value = provider
+        error = RateLimitError('Daily limit', response=httpx.Response(429, headers={'retry-after': '900'},
+            request=httpx.Request('POST', 'https://api.example.com')), body={})
+        success = MagicMock()
+        success.choices[0].message.content = 'Supported answer'
+        provider.chat.completions.create.side_effect = [error, success, success]
+        with patch('services.llm.LLM_FALLBACK_MODEL', 'backup-model'), \
+             patch('services.llm.get_client', return_value=provider), patch('services.llm.time.sleep') as sleep:
+            self.assertEqual(generate_answer('Evidence'), 'Supported answer')
+            self.assertEqual(generate_answer('Other evidence'), 'Supported answer')
+        calls = provider.chat.completions.create.call_args_list
+        self.assertEqual([call.kwargs['model'] for call in calls][1:], ['backup-model', 'backup-model'])
+        sleep.assert_not_called()
+
+    def test_compact_prompt_retains_certificate_safety_with_smaller_instructions(self):
+        prompt = rag.build_prompt('Who received the certificate?', [])
+        self.assertLess(len(prompt), 2400)
+        self.assertIn('ISSUER QUESTION', rag.build_prompt('Who issued the certificate?', []))
+        self.assertNotIn('ISSUER QUESTION', rag.build_prompt('Who issued this report?', []))
+        for phrase in ['has successfully completed', 'do not guess', 'signature columns',
+                       'explicitly identified issuer', "I don't know.", 'unverified']:
+            self.assertIn(phrase, prompt)
 
     def test_sources_use_first_150_characters(self):
         content = 'The workshop coordinator is Mira Sen. ' * 12

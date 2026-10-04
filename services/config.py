@@ -14,6 +14,7 @@ QDRANT_PATH = storage_path('QDRANT_PATH', 'qdrant_data')
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///' + (BASE_DIR / 'multimodal_rag.db').as_posix())
 MAX_UPLOAD_BYTES = int(os.getenv('MAX_UPLOAD_MB', '10')) * 1024 * 1024
 LLM_MODEL = os.getenv('LLM_MODEL', 'openai/gpt-oss-120b')
+LLM_FALLBACK_MODEL = os.getenv('LLM_FALLBACK_MODEL', 'openai/gpt-oss-20b')
 VISION_MODEL = os.getenv('VISION_MODEL', 'qwen/qwen3.8-27b')
 WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'whisper-large-v3')
 MAX_MEDIA_SECONDS = int(os.getenv('MAX_MEDIA_SECONDS', '600'))
