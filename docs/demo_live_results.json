@@ -1,0 +1,50 @@
+{
+  "mode": "live",
+  "results": [
+    {
+      "file": "syllabus.pdf",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "learner_policy.docx",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "certificate.png",
+      "chunks_created": 2,
+      "passed": true
+    },
+    {
+      "file": "orientation.wav",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "orientation.mp4",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "workshop.pptx",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "courses.csv",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "enrollment.md",
+      "chunks_created": 1,
+      "passed": true
+    },
+    {
+      "file": "support.txt",
+      "chunks_created": 1,
+      "passed": true
+    }
+  ]
+}

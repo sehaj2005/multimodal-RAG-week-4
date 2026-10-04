@@ -1,0 +1,8 @@
+{
+  "model": "qwen/qwen3.8-27b",
+  "image": "visual_shapes.png",
+  "expected_count": 3,
+  "description": "{\n  \"count\": 0,\n  \"layout\": \"A 2x2 grid of squares on a white background. The top-left square contains three small blue circles in a horizontal row. The top-right square contains a large blue circle on the left and the edge of another blue circle on the right. The bottom-left square contains two large blue circles arranged horizontally, with the left one partially cropped. The bottom-right square contains a single large blue circle cropped by the left edge.\"\n}",
+  "passed": false,
+  "note": "Visual count accuracy is unreliable; generated descriptions require review."
+}

@@ -1,0 +1,4 @@
+Cedar Learning Academy — fictional demonstration data.
+The learner support desk opens Monday to Friday from 09:00 to 17:00.
+Support contact: support@cedar.example.
+The library lending period is 14 days.

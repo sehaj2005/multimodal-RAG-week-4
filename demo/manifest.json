@@ -1,0 +1,72 @@
+[
+  {
+    "file": "syllabus.pdf",
+    "question": "How long does Python Foundations last and who is the lead instructor?",
+    "expected": [
+      "four weeks",
+      "Dev Rao"
+    ]
+  },
+  {
+    "file": "learner_policy.docx",
+    "question": "What attendance percentage is needed for a completion certificate?",
+    "expected": [
+      "75"
+    ]
+  },
+  {
+    "file": "certificate.png",
+    "question": "Who received certificate CLA-PY-026 and who explicitly issued it?",
+    "expected": [
+      "Aria Mehta",
+      "Cedar Learning Academy"
+    ]
+  },
+  {
+    "file": "orientation.wav",
+    "question": "Who coordinates the evening workshop and when does it start?",
+    "expected": [
+      "Alex Morgan",
+      "November",
+      "six"
+    ]
+  },
+  {
+    "file": "orientation.mp4",
+    "question": "What must learners bring to the evening workshop?",
+    "expected": [
+      "laptop"
+    ]
+  },
+  {
+    "file": "workshop.pptx",
+    "question": "What venue is used and what percentage of the grade is the final project?",
+    "expected": [
+      "Cedar Hall",
+      "60"
+    ]
+  },
+  {
+    "file": "courses.csv",
+    "question": "What is the fee in INR and seat count for Data Analysis Basics?",
+    "expected": [
+      "3200",
+      "18"
+    ]
+  },
+  {
+    "file": "enrollment.md",
+    "question": "What is the enrollment deadline and application code?",
+    "expected": [
+      "30 October 2026",
+      "CEDAR-PY-26"
+    ]
+  },
+  {
+    "file": "support.txt",
+    "question": "What is the library lending period?",
+    "expected": [
+      "14"
+    ]
+  }
+]
