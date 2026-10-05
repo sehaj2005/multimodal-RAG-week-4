@@ -1,0 +1,8 @@
+Upload simple_test_video.mp4 into a fresh room.
+
+What time does the Python workshop start? -> 10 AM
+Who is the instructor? -> Alex Morgan
+Where does the workshop take place? -> Room 204
+What must students bring? -> A laptop and a notebook
+
+Expand Sources and confirm the filename is simple_test_video.mp4 and type is MP4.

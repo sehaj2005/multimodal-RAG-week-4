@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/chat', tags=['Chat'])
 
 @router.get('/{room_id}/history')
+
 def get_chat_history(room_id: int, skip: int = Query(0, ge=0), limit: int = Query(20, ge=1, le=200),
+                     
                      db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     require_room(db, room_id, current_user.id)
     return db.query(ChatMessage).filter(ChatMessage.room_id == room_id, ChatMessage.user_id == current_user.id).order_by(
