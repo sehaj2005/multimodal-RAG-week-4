@@ -1,0 +1,6 @@
+{
+  "name":"livekit-avatar-frontend","version":"0.1.0","private":true,"type":"module",
+  "scripts":{"dev":"vite --host 127.0.0.1","build":"vite build"},
+  "dependencies":{"@livekit/components-react":"^2.9.0","@livekit/components-styles":"^1.1.0","livekit-client":"^2.15.0","react":"^19.0.0","react-dom":"^19.0.0"},
+  "devDependencies":{"vite":"^7.0.0","typescript":"^5.8.0","@types/react":"^19.0.0","@types/react-dom":"^19.0.0"}
+}

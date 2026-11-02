@@ -1,0 +1,200 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0b1020;
+  color: #eef2ff;
+  font-family: Inter, system-ui, Arial, sans-serif;
+}
+
+main {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 16px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #28314a;
+  background: #0b1020;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0;
+}
+
+header span {
+  font-size: 14px;
+  color: #9ca9c4;
+}
+
+/* Landing page */
+
+.landing {
+  margin: auto;
+  text-align: center;
+  max-width: 650px;
+  padding: 32px;
+}
+
+.landing h2 {
+  font-size: 42px;
+  margin-bottom: 24px;
+}
+
+.landing p {
+  font-size: 18px;
+  color: #a3b3cc;
+  line-height: 1.6;
+}
+
+button {
+  background: #646cff;
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #5058e5;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* LiveKit meeting */
+
+.meeting {
+  flex: 1;
+  min-height: 0;
+}
+
+.meeting [data-lk-theme] {
+  height: 100%;
+}
+
+.two-person-meeting {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0b1020;
+}
+
+.meeting-videos {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+}
+
+/* Custom 2-person grid */
+
+.custom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  height: 100%;
+}
+
+.custom-tile {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1c1c1c;
+  border: 1px solid #28314a;
+  min-height: 420px;
+}
+
+.custom-tile .lk-participant-tile {
+  width: 100%;
+  height: 100%;
+  background: #1c1c1c;
+}
+
+.custom-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #1c1c1c;
+}
+
+/* Hide default LiveKit name/metadata */
+.custom-tile .lk-participant-metadata,
+.custom-tile .lk-participant-name,
+.custom-tile .lk-audio-bar {
+  display: none !important;
+}
+
+/* Our custom display name */
+.custom-name {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+/* Controls */
+
+.meeting-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px;
+  background: #141414;
+  border-top: 1px solid #28314a;
+}
+
+/* Errors */
+
+.error {
+  margin: 12px 24px;
+  color: #ffb2b2;
+  font-size: 15px;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  header {
+    padding: 12px 16px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .landing h2 {
+    font-size: 30px;
+  }
+
+  .custom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-tile {
+    min-height: 300px;
+  }
+
+  .meeting-videos {
+    padding: 6px;
+  }
+
+  .meeting-controls {
+    padding: 8px;
+  }
+}

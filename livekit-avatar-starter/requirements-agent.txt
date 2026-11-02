@@ -1,0 +1,2 @@
+livekit-agents[deepgram,openai,cartesia,silero,simli]~=1.8
+python-dotenv>=1,<2
